@@ -16,7 +16,7 @@ class Puzzle():
         for y in range(9):
             for x in range(9):
                 if (v := self.known[xy(x,y)]) == "?":
-                    print("?", end='')
+                    print(".", end='')
                 else:
                     print(v+1, end='')
             print('')
@@ -33,7 +33,8 @@ class Puzzle():
                     print(".", end='')
             print('')
 
-    def set(self, x:int, y:int, val:int):
+    #def set(self, x:int, y:int, val:int):
+    def set(self, y:int, x:int, val:int):
         val -= 1  # make it 0-based
         # Check
         assert (val>=0) and (val<=8), "Invalid number"
@@ -80,20 +81,48 @@ class Puzzle():
                 if (v := self.couldbe1(x,y)) != "?":
                     print(f"At {x=} {y=} must be {v+1}")
 
+def fill_nyt_sept20(p:Puzzle):
+    p.set(0,0,5)
+    p.set(0,4,3)
+    p.set(0,6,4)
+
+    p.set(1,3,2)
+    p.set(1,4,8)
+    p.set(1,7,1)
+
+    p.set(2,2,1)
+    p.set(2,4,9)
+
+    p.set(3,2,3)
+    p.set(3,4,6)
+    p.set(3,6,1)
+    p.set(3,8,5)
+
+    p.set(4,0,7)
+    p.set(4,3,8)
+    p.set(4,5,1)
+    p.set(4,8,2)
+
+    p.set(5,0,2)
+    p.set(5,2,5)
+    p.set(5,4,4)
+    p.set(5,6,9)
+
+    p.set(6,4,1)
+    p.set(6,6,2)
+
+    p.set(7,1,3)
+    p.set(7,4,2)
+    p.set(7,5,6)
+
+    p.set(8,2,9)
+    p.set(8,4,7)
+    p.set(8,8,4)
+
+
                 
 
 if __name__ == "__main__":
     p = Puzzle()
-    p.set(0,0,5)
-    p.set(0,4,3)
-    p.set(0,6,4)
-    p.set(1,3,2)
-    p.set(1,4,8)
-    p.set(1,7,1)
-    p.set(2,2,1)
-    p.set(2,4,9)
-    p.set(3,2,3)
-    p.set(3,4,6)
-    p.set(3,6,1)
     p.print()
     p.scan_couldbe()
