@@ -55,6 +55,10 @@ class Puzzle():
         for i in range(3):
             for j in range(3):
                 self.couldbe[xy(base_x+i,base_y+j)][val] = False
+
+        # set its own couldbe
+        self.couldbe[xy(x,y)] = [False]*9
+        self.couldbe[xy(x,y)][val] = True
                 
     def couldbe1(self, x:int, y:int):
         """Returns a number if there's only one possibility here.
@@ -63,7 +67,7 @@ class Puzzle():
         cnt = 0
         answer = "?"
         for n in range(9):
-            if self.couldbe[xy(x,y)]:
+            if self.couldbe[xy(x,y)][n]:
                 cnt += 1
                 answer = n
         if cnt == 1:
@@ -71,15 +75,49 @@ class Puzzle():
         if cnt == 0:
             print(f"Warning! Impossible combination at {x=} {y=}")
         return "?"
+
+    def possibilities(self, x:int, y:int):
+        out = set()
+        for n in range(9):
+            if self.couldbe[xy(x,y)][n]:
+                out.add(n+1)
+        return out
                 
 
-    def scan_couldbe(self):
+    def scan(self):
         """Looks for places where there's only one possibility.
+        Returns tuples that would be passed into set()
         """
+        out = []
         for x in range(9):
             for y in range(9):
                 if (v := self.couldbe1(x,y)) != "?":
-                    print(f"At {x=} {y=} must be {v+1}")
+                    if self.known[xy(x,y)] == "?":
+                        out.append([x,y,v+1])
+        return out
+
+    def num_unknown(self) -> int:
+        cnt = 0
+        for n in range(81):
+            if self.known[n] == "?":
+                cnt += 1
+        return cnt
+        
+    def solve(self):
+        for i in range(82):
+            unknown = self.num_unknown()
+            print(f"\nIteration {i}: {unknown} left")
+            self.print()
+            if unknown == 0:
+                print("Done!")
+                return
+            print("Scanning...")
+            scan_results = self.scan()
+            print(f"Found {len(scan_results)} squares that are known")
+            for fill_in in scan_results:
+                print(f"Setting {fill_in}")
+                self.set(*fill_in)
+        print("Solver failed.")
 
 def fill_nyt_sept20(p:Puzzle):
     p.set(0,0,5)
@@ -124,5 +162,5 @@ def fill_nyt_sept20(p:Puzzle):
 
 if __name__ == "__main__":
     p = Puzzle()
-    p.print()
-    p.scan_couldbe()
+    fill_nyt_sept20(p)
+    p.solve()
