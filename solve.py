@@ -71,18 +71,57 @@ class Puzzle():
             if self.couldbe[xy(x,y)][n]:
                 out.add(n+1)
         return out
+
+    def all_groups(self) -> list:
+        """Returns a list of groups.  Groups are rows,
+        columns or boxes.  Each group is represented as a list of
+        coordinate pairs (x,y).
+        """
+        out = []
+        for i in range(9):
+            row = []
+            col = []
+            for j in range(9):
+                row.append([i,j])
+                col.append([j,i])
+            out.append(row)
+            out.append(col)
+        for i in range(3):
+            for j in range(3):
+                box = []
+                for ii in range(3):
+                    for jj in range(3):
+                        box.append([i*3+ii, j*3+jj])
+                out.append(box)
+        return out
                 
     def scan(self):
         """Looks for places where there's only one possibility.
         Returns tuples that would be passed into set()
         """
         out = []
+        # Look for squares where there's only 1 possibility
         for x in range(9):
             for y in range(9):
                 if len(p := self.possibilities(x,y)) == 1:
                     v = list(p)[0]
                     if self.known[xy(x,y)] == "?":
                         out.append([x,y,v])
+                        
+        # Scan every group to see if any number is only possible 
+        # in a single place.
+        for grp in self.all_groups():
+            for val in range(1,10):
+                places_which_can_have_this_val = []
+                for pxy in grp:
+                    if val in self.possibilities(*pxy):
+                        places_which_can_have_this_val.append(pxy)
+                if len(places_which_can_have_this_val) == 1:
+                    x,y = places_which_can_have_this_val[0]
+                    if self.known[xy(x,y)] == "?":
+                        if [x, y, val] not in out:
+                            out.append([x, y, val])
+                        
         return out
 
     def num_unknown(self) -> int:
@@ -110,6 +149,7 @@ class Puzzle():
                 # Nothing new set.
                 break
         print("Solver failed.")
+
 
 def fill_nyt_sept20(p:Puzzle):
     p.setyx(0,0,5)
