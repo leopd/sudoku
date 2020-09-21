@@ -1,9 +1,16 @@
+"""Sudoku solver.
+Kid coding project.
+Requires python 3.8+
+"""
 
 def xy(x:int, y:int) -> int:
+    """Converts coordinates [x,y] in [(0-8),(0-8)] to [0-80] array location
+    """
     return y*9 + x
 
 class Puzzle():
     """Internal values are 0-based.
+    Starts out empty.
     """
 
     def __init__(self):
@@ -37,6 +44,8 @@ class Puzzle():
         self.set(x,y,val)
 
     def set(self, x:int, y:int, val:int):
+        """Sets a value on the puzzle.
+        """
         val -= 1  # make it 0-based
         # Check
         assert (val>=0) and (val<=8), "Invalid number"
