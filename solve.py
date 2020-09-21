@@ -62,30 +62,16 @@ class Puzzle():
         self.couldbe[xy(x,y)] = [False]*9
         self.couldbe[xy(x,y)][val] = True
                 
-    def couldbe1(self, x:int, y:int):
-        """Returns a number if there's only one possibility here.
-        Else returns "?"
+    def possibilities(self, x:int, y:int) -> set:
+        """Returns a set of all the possible values (1-based) that are
+        allowed in this space
         """
-        cnt = 0
-        answer = "?"
-        for n in range(9):
-            if self.couldbe[xy(x,y)][n]:
-                cnt += 1
-                answer = n
-        if cnt == 1:
-            return answer
-        if cnt == 0:
-            print(f"Warning! Impossible combination at {x=} {y=}")
-        return "?"
-
-    def possibilities(self, x:int, y:int):
         out = set()
         for n in range(9):
             if self.couldbe[xy(x,y)][n]:
                 out.add(n+1)
         return out
                 
-
     def scan(self):
         """Looks for places where there's only one possibility.
         Returns tuples that would be passed into set()
@@ -93,9 +79,10 @@ class Puzzle():
         out = []
         for x in range(9):
             for y in range(9):
-                if (v := self.couldbe1(x,y)) != "?":
+                if len(p := self.possibilities(x,y)) == 1:
+                    v = list(p)[0]
                     if self.known[xy(x,y)] == "?":
-                        out.append([x,y,v+1])
+                        out.append([x,y,v])
         return out
 
     def num_unknown(self) -> int:
