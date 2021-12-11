@@ -2,6 +2,8 @@
 Kid coding project.
 Requires python 3.8+
 """
+import re
+import sys
 
 def xy(x:int, y:int) -> int:
     """Converts coordinates [x,y] in [(0-8),(0-8)] to [0-80] array location
@@ -9,7 +11,8 @@ def xy(x:int, y:int) -> int:
     return y*9 + x
 
 class Puzzle():
-    """Internal values are 0-based.
+    """The state of the puzzle board, and the solver code.
+    Internal values are 0-based.
     Starts out empty.
     """
 
@@ -26,7 +29,11 @@ class Puzzle():
                     print(".", end='')
                 else:
                     print(v+1, end='')
-            print('')
+                if x%3 == 2:
+                    print(" ", end='')
+            print('')  # newline
+            if y%3 == 2:
+                print("")  # extra newline
 
     def print_couldbe(self, val:int):
         val -= 1
@@ -45,10 +52,14 @@ class Puzzle():
 
     def set(self, x:int, y:int, val:int):
         """Sets a value on the puzzle.
+         `val` is 1-based.
+         `x` and `y` are 0-based
         """
         val -= 1  # make it 0-based
         # Check
         assert (val>=0) and (val<=8), "Invalid number"
+        assert (x>=0) and (x<9), f"Invalid coordinate {x=}"
+        assert (y>=0) and (y<9), f"Invalid coordinate {y=}"
         assert self.known[xy(x,y)] == "?", "Attempt to set value already set"
         assert self.couldbe[xy(x,y)][val], "Attempt to set impossible value"
         
@@ -70,6 +81,15 @@ class Puzzle():
         # set its own couldbe
         self.couldbe[xy(x,y)] = [False]*9
         self.couldbe[xy(x,y)][val] = True
+
+    def set_row_string(self, line:str, y:int):
+        """Takes a string like "..2...45." and sets all the values
+        """
+        assert len(line) == 9
+        for x, char in enumerate(line):
+            if char in "123456789":
+                n = int(char)
+                self.set(x, y, n)
                 
     def possibilities(self, x:int, y:int) -> set:
         """Returns a set of all the possible values (1-based) that are
@@ -160,46 +180,39 @@ class Puzzle():
         print("Solver failed.")
 
 
-def fill_nyt_sept20(p:Puzzle):
-    p.setyx(0,0,5)
-    p.setyx(0,4,3)
-    p.setyx(0,6,4)
+def _load_line(fh) -> str:
+    """Loads a line from the file,
+    skipping blank lines.  Validates
+    format, and removes whitespace.
+    """
+    while True:
+        line = fh.readline()
+        line = line.rstrip()
+        line = re.sub(" ", "", line)
+        if line:
+            # Not blank.
+            assert len(line)==9, f"Invalid {line=}"
+            return line
+        # else blank line, keep reading
 
-    p.setyx(1,3,2)
-    p.setyx(1,4,8)
-    p.setyx(1,7,1)
-
-    p.setyx(2,2,1)
-    p.setyx(2,4,9)
-
-    p.setyx(3,2,3)
-    p.setyx(3,4,6)
-    p.setyx(3,6,1)
-    p.setyx(3,8,5)
-
-    p.setyx(4,0,7)
-    p.setyx(4,3,8)
-    p.setyx(4,5,1)
-    p.setyx(4,8,2)
-
-    p.setyx(5,0,2)
-    p.setyx(5,2,5)
-    p.setyx(5,4,4)
-    p.setyx(5,6,9)
-
-    p.setyx(6,4,1)
-    p.setyx(6,6,2)
-
-    p.setyx(7,1,3)
-    p.setyx(7,4,2)
-    p.setyx(7,5,6)
-
-    p.setyx(8,2,9)
-    p.setyx(8,4,7)
-    p.setyx(8,8,4)
+def load_puzzle_from_file(filename:str) -> Puzzle:
+    p = Puzzle()
+    print(f"Loading puzzle from {filename=}")
+    with open(filename, "rt") as fh:
+        y = 0
+        for y in range(9):
+            line = _load_line(fh)
+            try:
+                p.set_row_string(line, y)
+            except:
+                print(f"Error parsing {line=} for {y=}")
+                raise
+    return p
 
 
 if __name__ == "__main__":
-    p = Puzzle()
-    fill_nyt_sept20(p)
+    if len(sys.argv) != 2:
+        print("Specify the name of the file with the puzzle in it.")
+        sys.exit(1)
+    p = load_puzzle_from_file(sys.argv[1])
     p.solve()
