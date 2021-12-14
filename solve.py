@@ -4,6 +4,7 @@ Requires python 3.8+
 """
 import re
 import sys
+import itertools
 
 def xy(x:int, y:int) -> int:
     """Converts coordinates [x,y] in [(0-8),(0-8)] to [0-80] array location
@@ -62,7 +63,7 @@ class Puzzle():
         assert (y>=0) and (y<9), f"Invalid coordinate {y=}"
         assert self.known[xy(x,y)] == "?", "Attempt to set value already set"
         assert self.couldbe[xy(x,y)][val], "Attempt to set impossible value"
-        
+
         # set it as known
         self.known[xy(x,y)] = val
 
@@ -82,6 +83,20 @@ class Puzzle():
         self.couldbe[xy(x,y)] = [False]*9
         self.couldbe[xy(x,y)][val] = True
 
+    def could_not_be(self, x:int, y:int, val:int):
+        """Clears a could-be value on the puzzle.
+         `val` is 1-based.
+         `x` and `y` are 0-based
+        """
+        val -= 1  # make it 0-based
+        # Check
+        assert (val>=0) and (val<=8), "Invalid number"
+        assert (x>=0) and (x<9), f"Invalid coordinate {x=}"
+        assert (y>=0) and (y<9), f"Invalid coordinate {y=}"
+        assert self.known[xy(x,y)] == "?", "Attempt to remove could-be value when previously set"
+
+        self.couldbe[xy(x,y)][val] = False
+
     def set_row_string(self, line:str, y:int):
         """Takes a string like "..2...45." and sets all the values
         """
@@ -90,7 +105,7 @@ class Puzzle():
             if char in "123456789":
                 n = int(char)
                 self.set(x, y, n)
-                
+
     def possibilities(self, x:int, y:int) -> set:
         """Returns a set of all the possible values (1-based) that are
         allowed in this space
@@ -123,7 +138,7 @@ class Puzzle():
                         box.append([i*3+ii, j*3+jj])
                 out.append(box)
         return out
-                
+
     def scan(self):
         """Looks for places where there's only one possibility.
         Returns tuples that would be passed into set()
@@ -136,8 +151,8 @@ class Puzzle():
                     v = list(p)[0]
                     if self.known[xy(x,y)] == "?":
                         out.append([x,y,v])
-                        
-        # Scan every group to see if any number is only possible 
+
+        # Scan every group to see if any number is only possible
         # in a single place.
         for grp in self.all_groups():
             for val in range(1,10):
@@ -150,8 +165,41 @@ class Puzzle():
                     if self.known[xy(x,y)] == "?":
                         if [x, y, val] not in out:
                             out.append([x, y, val])
-                        
+
         return out
+
+    def scan_could_not_be(self):
+        """Looks for places where squares in groups could not be certains values.
+         Returns tuples to be passed into could_not_be."""
+        # Looks for groups where there are N squares that can only be the same set of N
+        # values. No other square may contain those values.
+        # TODO: there are even more strategies that are sometimes necessary for complex
+        # puzzles. Examples:
+        # 1. If 3 squares in a group could only be (1,3), (1,5), and (3,5) then no other
+        #    square in the group can be 1, 3, or 5. (This expands to larger sets of values
+        #    with decreasing utility).
+        # 2. If there are exactly two squares whose possibilities include 4 and 5 (among
+        #    others), then the other possibilities for those squares can be eliminated.
+        #    I believe this expands to more than 2 numbers as well, but I can't visualize
+        #    it when solving so I've never found one.
+        could_not_be = []
+        for v in range(2, 9):
+            for c in itertools.combinations([1,2,3,4,5,6,7,8,9], v):
+                combo = set(c)
+                for grp in self.all_groups():
+                    not_exact = []
+                    for pxy in grp:
+                        poss = self.possibilities(*pxy)
+                        if poss != combo:
+                            not_exact.append([pxy, poss])
+
+                    if 9 - len(not_exact) == len(combo):
+                        for pxy, poss in not_exact:
+                            for val in combo:
+                                if val in poss:
+                                    could_not_be.append([pxy[0], pxy[1], val])
+
+        return could_not_be
 
     def num_unknown(self) -> int:
         cnt = 0
@@ -159,7 +207,7 @@ class Puzzle():
             if self.known[n] == "?":
                 cnt += 1
         return cnt
-        
+
     def solve(self):
         for i in range(82):
             unknown = self.num_unknown()
@@ -174,9 +222,17 @@ class Puzzle():
             for fill_in in scan_results:
                 print(f"Setting {fill_in}")
                 self.set(*fill_in)
+
             if self.num_unknown() == unknown:
-                # Nothing new set.
-                break
+                # Nothing new set. Try eliminating possibilities
+                could_not_be_results = self.scan_could_not_be()
+                print(f"Found {len(could_not_be_results)} that eliminate possibilities")
+                for cnb in could_not_be_results:
+                    print(f"Could not be {cnb}")
+                    self.could_not_be(*cnb)
+                if len(could_not_be_results) == 0:
+                    # Give up.
+                    break
         print("Solver failed.")
 
 
